@@ -497,7 +497,7 @@ footer span { color: var(--teal); }
         <h3>زانیاری خوێندکار</h3>
         <div class="form-row">
           <div class="field"><label>ناوی تەواو</label><input type="text" placeholder="ناوی خوێندکار..."></div>
-          <div class="field"><label>ژمارەی خوێندکار</label><input type="text" placeholder="مەسەلەن: 2024-001"></div>
+          <div class="field"><label>ژمارەی خوێندکار</label><input type="text" placeholder="نمونە: 2024-001"></div>
         </div>
         <div class="form-row">
           <div class="field"><label>قۆناغ</label>
@@ -542,7 +542,7 @@ footer span { color: var(--teal); }
         <h3>زانیاری خوێندکار</h3>
         <div class="form-row">
           <div class="field"><label>ناوی تەواو</label><input type="text" placeholder="ناوی خوێندکار..."></div>
-          <div class="field"><label>ژمارەی خوێندکار</label><input type="text" placeholder="مەسەلەن: 2024-001"></div>
+          <div class="field"><label>ژمارەی خوێندکار</label><input type="text" placeholder="نمونە: 2024-001"></div>
         </div>
       </div>
       <div class="form-card">
@@ -558,10 +558,10 @@ footer span { color: var(--teal); }
           <div class="field"><label>ژمارەی کۆپی</label><input type="number" min="1" max="10" value="1"></div>
         </div>
         <div class="form-row single">
-          <div class="field"><label>مەبەستی پشتگیری</label><textarea placeholder="مەسەلەن: بۆ پاسپۆرت، بۆ ویزا، بۆ کارکردن..."></textarea></div>
+          <div class="field"><label>مەبەستی پشتگیری</label><textarea placeholder="نمونە: بۆ پاسپۆرت، بۆ ویزا، بۆ کارکردن..."></textarea></div>
         </div>
         <div class="form-row single">
-          <div class="field"><label>شوێنی داواکراوە (بۆ چ لایەنێک)</label><input type="text" placeholder="مەسەلەن: فەرمانگەی پاسپۆرت، زانکۆ، نەخۆشخانە..."></div>
+          <div class="field"><label>شوێنی داواکراوە (بۆ چ لایەنێک)</label><input type="text" placeholder="نمونە: فەرمانگەی پاسپۆرت، زانکۆ، نەخۆشخانە..."></div>
         </div>
       </div>
       <div class="btn-row">
@@ -635,7 +635,7 @@ footer span { color: var(--teal); }
   <div class="form-card" style="margin-bottom:20px;">
     <h3>زیادکردن / ئەپدەیتکردنی ئاماری ساڵانە</h3>
     <div class="form-row">
-      <div class="field"><label>ساڵ</label><input id="as-year" type="number" placeholder="مەسەلەن: 2026" min="2020" max="2100"></div>
+      <div class="field"><label>ساڵ</label><input id="as-year" type="number" placeholder="نمونە: 2026" min="2020" max="2100"></div>
       <div class="field"><label>ژمارەی خوێندکار</label><input id="as-students" type="number" placeholder="0" min="0"></div>
     </div>
     <div class="form-row">
@@ -782,13 +782,13 @@ function submit(name) {
   var studentName = '', studentId = '', detail = '', reqType = '';
   if (name === 'molat') {
     studentName = document.getElementById('form-molat-wrap').querySelector('input[placeholder="ناوی خوێندکار..."]').value.trim();
-    studentId   = document.getElementById('form-molat-wrap').querySelector('input[placeholder="مەسەلەن: 2024-001"]').value.trim();
+    studentId   = document.getElementById('form-molat-wrap').querySelector('input[placeholder="نمونە: 2024-001"]').value.trim();
     var typeEl  = document.getElementById('form-molat-wrap').querySelector('select');
     detail = typeEl ? typeEl.value : '';
     reqType = 'مۆڵەت';
   } else {
     studentName = document.getElementById('form-tasdiq-wrap').querySelector('input[placeholder="ناوی خوێندکار..."]').value.trim();
-    studentId   = document.getElementById('form-tasdiq-wrap').querySelector('input[placeholder="مەسەلەن: 2024-001"]').value.trim();
+    studentId   = document.getElementById('form-tasdiq-wrap').querySelector('input[placeholder="نمونە: 2024-001"]').value.trim();
     var typeEl2 = document.getElementById('form-tasdiq-wrap').querySelector('select');
     detail = typeEl2 ? typeEl2.value : '';
     reqType = 'پشتگیری';
@@ -1292,12 +1292,12 @@ submit = async function(name) {
   var studentName='', studentId='', detail='', reqType='';
   if (name==='molat') {
     studentName=document.getElementById('form-molat-wrap').querySelector('input[placeholder="ناوی خوێندکار..."]').value.trim();
-    studentId=document.getElementById('form-molat-wrap').querySelector('input[placeholder="مەسەلەن: 2024-001"]').value.trim();
+    studentId=document.getElementById('form-molat-wrap').querySelector('input[placeholder="نمونە: 2024-001"]').value.trim();
     var sel=document.getElementById('form-molat-wrap').querySelector('select');
     detail=sel?sel.value:''; reqType='مۆڵەت';
   } else {
     studentName=document.getElementById('form-tasdiq-wrap').querySelector('input[placeholder="ناوی خوێندکار..."]').value.trim();
-    studentId=document.getElementById('form-tasdiq-wrap').querySelector('input[placeholder="مەسەلەن: 2024-001"]').value.trim();
+    studentId=document.getElementById('form-tasdiq-wrap').querySelector('input[placeholder="نمونە: 2024-001"]').value.trim();
     var sel2=document.getElementById('form-tasdiq-wrap').querySelector('select');
     detail=sel2?sel2.value:''; reqType='پشتگیری';
   }
@@ -1461,10 +1461,12 @@ renderTeachers();
 renderTrackerHome();
 renderRequests();
 updateReqBadge();
-// Load from Supabase
+updateHomeStats();
+// Load from Supabase — هەموو کەس داتا دەبینێت
 loadStudents();
 loadTeachers();
 loadRequests();
+loadAnnualStats();
 // Setup drag-drop
 document.addEventListener('DOMContentLoaded', function(){
   setupDrop('s-drop-zone','s-file-input', handleStudentFile);
