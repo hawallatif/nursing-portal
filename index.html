@@ -1484,33 +1484,33 @@ handleTeacherFile = async function(input) {
 
 // --- Load students from Supabase ---
 async function loadStudents() {
-  var { data, error } = await db.from('students').select('*').order('id');
-  if (error) { console.error('students error:', JSON.stringify(error)); return; }
-  students = data.map(function(r){ return {id: r.student_code, name: r.name, stage: r.stage, status: r.status}; });
-  renderStudents();
+  try {
+    var data = await sbGet('students','id');
+    students = data.map(function(r){ return {id:r.student_code, name:r.name, stage:r.stage, status:r.status}; });
+    renderStudents();
+  } catch(e) { console.error('students:', e.message); }
 }
 
 // --- Load teachers from Supabase ---
 async function loadTeachers() {
-  var { data, error } = await db.from('teachers').select('*').order('id');
-  if (error) { console.error('teachers error:', JSON.stringify(error)); return; }
-  teachers = data.map(function(r){ return {name: r.name, spec: r.speciality, edu: r.education, role: r.role}; });
-  renderTeachers();
+  try {
+    var data = await sbGet('teachers','id');
+    teachers = data.map(function(r){ return {name:r.name, spec:r.speciality, edu:r.education, role:r.role}; });
+    renderTeachers();
+  } catch(e) { console.error('teachers:', e.message); }
 }
 
 // --- Load requests from Supabase ---
 async function loadRequests() {
-  var { data, error } = await db.from('requests').select('*').order('id');
-  if (error) { console.error('requests error:', JSON.stringify(error)); return; }
-  requests = data.map(function(r){ return {
-    id: r.id, code: r.code, type: r.type,
-    name: r.student_name, studentId: r.student_id,
-    detail: r.detail, date: r.date,
-    status: r.status, note: r.note || ''
-  };});
-  renderRequests();
-  renderTrackerHome();
-  updateReqBadge();
+  try {
+    var data = await sbGet('requests','id');
+    requests = data.map(function(r){ return {
+      id:r.id, code:r.code, type:r.type,
+      name:r.student_name, studentId:r.student_id,
+      detail:r.detail, date:r.date, status:r.status, note:r.note||''
+    };});
+    renderRequests(); renderTrackerHome(); updateReqBadge();
+  } catch(e) { console.error('requests:', e.message); }
 }
 
 // INIT
