@@ -457,24 +457,25 @@ footer span { color: var(--teal); }
     <div class="stat-card">
       <span class="icon">🎓</span>
       <div class="num" id="home-students">٠</div>
-      <div class="label">خوێندکاری چالاک</div>
+      <div class="label">خوێندکار</div>
     </div>
     <div class="stat-card">
       <span class="icon">👩‍⚕️</span>
       <div class="num" id="home-teachers">٠</div>
-      <div class="label">مامۆستا و پسپۆڕ</div>
+      <div class="label">ستاف و مامۆستا</div>
+    </div>
+    <div class="stat-card">
+      <span class="icon">🏅</span>
+      <div class="num" id="home-graduates">٠</div>
+      <div class="label">دەرچووان</div>
     </div>
     <div class="stat-card">
       <span class="icon">📋</span>
       <div class="num" id="home-requests">٠</div>
-      <div class="label">داواکاری ئەمساڵ</div>
-    </div>
-    <div class="stat-card">
-      <span class="icon">✅</span>
-      <div class="num" id="home-approved">٠</div>
-      <div class="label">پەسەندکراو</div>
+      <div class="label">داواکاریەکان</div>
     </div>
   </div>
+  <div id="home-year-label" style="text-align:center;font-family:'Speda',sans-serif;font-size:13px;color:rgba(255,255,255,0.4);margin-top:-20px;margin-bottom:28px;"></div>
 
   <!-- TABS -->
   <div class="tabs">
@@ -507,20 +508,11 @@ footer span { color: var(--teal); }
               <option>قۆناغی چوارەم</option>
             </select>
           </div>
-          <div class="field"><label>ژمارەی مۆبایل</label><input type="text" placeholder="+964..."></div>
         </div>
       </div>
       <div class="form-card">
         <h3>وردەکاری مۆڵەت</h3>
         <div class="form-row">
-          <div class="field"><label>جۆری مۆڵەت</label>
-            <select>
-              <option>مۆڵەتی تەندروستی</option>
-              <option>مۆڵەتی خێزانی</option>
-              <option>مۆڵەتی تایبەت</option>
-              <option>مۆڵەتی خوێندن</option>
-            </select>
-          </div>
           <div class="field"><label>ژمارەی ڕۆژ</label><input type="number" min="1" max="30" placeholder="ژمارەی ڕۆژ..."></div>
         </div>
         <div class="form-row">
@@ -555,17 +547,6 @@ footer span { color: var(--teal); }
       </div>
       <div class="form-card">
         <h3>جۆری پشتگیری</h3>
-        <div class="form-row single">
-          <div class="field"><label>جۆری پشتگیری داواکراو</label>
-            <select>
-              <option>پشتگیری خوێندن (بۆ سازمانی دەرەوە)</option>
-              <option>پشتگیری نمرەکان</option>
-              <option>پشتگیری دەست بەجێهێشتن</option>
-              <option>پشتگیری تواناکان</option>
-              <option>کۆپیی کارتی خوێندکار</option>
-            </select>
-          </div>
-        </div>
         <div class="form-row">
           <div class="field"><label>زمانی پشتگیری</label>
             <select>
@@ -691,7 +672,7 @@ footer span { color: var(--teal); }
   <div class="cards-grid" style="margin-bottom:28px;">
     <div class="stat-card"><span class="icon">📍</span><div class="num" style="font-size:18px;">کەلار</div><div class="label">شاری کەلار، هەرێمی کوردستان</div></div>
     <div class="stat-card"><span class="icon">📞</span><div class="num" style="font-size:18px;">٠٧٧٠٠٠٠٠٠٠٠</div><div class="label">ژمارەی بەش</div></div>
-    <div class="stat-card"><span class="icon">✉</span><div class="num" style="font-size:16px;">nursing@gpu.edu.iq</div><div class="label">ئیمەیڵ</div></div>
+    <div class="stat-card"><span class="icon">✉</span><div class="num" style="font-size:14px;">hawal.lateef@gpu.edu.iq</div><div class="label">ئیمەیڵ</div></div>
   </div>
   <div class="form-card">
     <h3>ناردنی پەیام بۆ بەش</h3>
@@ -1389,15 +1370,21 @@ handleTeacherFile = async function(input) {
 };
 
 function updateHomeStats() {
-  var activeStudents = students.filter(function(s){ return s.status === 'چالاک'; }).length;
-  var totalTeachers  = teachers.length;
-  var totalRequests  = requests.length;
-  var approvedReqs   = requests.filter(function(r){ return r.status === 'پەسەندکرا'; }).length;
+  // Home dashboard — use latest annual stats if available, else live counts
   var el;
-  el = document.getElementById('home-students');   if(el) el.textContent = activeStudents;
-  el = document.getElementById('home-teachers');   if(el) el.textContent = totalTeachers;
-  el = document.getElementById('home-requests');   if(el) el.textContent = totalRequests;
-  el = document.getElementById('home-approved');   if(el) el.textContent = approvedReqs;
+  var latestYear = annualStats.length ? annualStats[annualStats.length - 1] : null;
+  if (latestYear) {
+    el = document.getElementById('home-students');   if(el) el.textContent = latestYear.students;
+    el = document.getElementById('home-teachers');   if(el) el.textContent = latestYear.staff;
+    el = document.getElementById('home-graduates');  if(el) el.textContent = latestYear.graduates;
+    var lbl = document.getElementById('home-year-label');
+    if(lbl) lbl.textContent = 'ئامارەکانی ساڵی ' + latestYear.year;
+  } else {
+    el = document.getElementById('home-students');   if(el) el.textContent = students.filter(function(s){return s.status==='چالاک';}).length;
+    el = document.getElementById('home-teachers');   if(el) el.textContent = teachers.length;
+    el = document.getElementById('home-graduates');  if(el) el.textContent = '—';
+  }
+  el = document.getElementById('home-requests'); if(el) el.textContent = requests.length;
 }
 
 // ---------- ANNUAL STATS ----------
@@ -1408,6 +1395,7 @@ async function loadAnnualStats() {
     var data = await sbGet('annual_stats', 'year');
     annualStats = data;
     renderAnnualStats();
+    updateHomeStats();
   } catch(e) { console.error('annual_stats:', e.message); }
 }
 
