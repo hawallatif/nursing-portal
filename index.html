@@ -704,7 +704,7 @@ footer span { color: var(--teal); }
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
 // ---------- AUTH ----------
-var ADMIN_USER = 'admin';
+var ADMIN_UHASH = '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918';
 // پاسووردەکە hash کراوە
 var ADMIN_HASH = 'aa647f558e5f209b67a4a85cb9043b9cb50177314728c4bbb44b702170357266';
 var isAdmin = false;
@@ -721,7 +721,8 @@ async function doLogin() {
   var u = document.getElementById('login-user').value.trim();
   var p = document.getElementById('login-pass').value;
   var h = await hashPassword(p);
-  if (u === ADMIN_USER && h === ADMIN_HASH) {
+  var uh = await hashPassword(u);
+  if (uh === ADMIN_UHASH && h === ADMIN_HASH) {
     isAdmin = true;
     document.getElementById('login-overlay').style.display = 'none';
     document.getElementById('admin-badge').style.display = 'block';
@@ -1217,8 +1218,11 @@ async function gsPost(data) {
       if (document.body.contains(script)) document.body.removeChild(script);
       reject(new Error('NetworkError'));
     };
-    var encoded = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
-    script.src = GS_URL + '?payload=' + encodeURIComponent(encoded) + '&callback=' + cb;
+    // Send all fields as GET params
+    var params = Object.keys(data).map(function(k){
+      return encodeURIComponent(k) + '=' + encodeURIComponent(String(data[k]));
+    }).join('&');
+    script.src = GS_URL + '?' + params + '&callback=' + cb;
     document.body.appendChild(script);
   });
 }
