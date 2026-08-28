@@ -1168,19 +1168,35 @@ function setupDrop(zoneId, inputId, handler) {
 // ---------- GOOGLE SHEETS ----------
 var GS_URL = 'https://script.google.com/macros/s/AKfycbz9VhkLpm_LPqcibgHnODNfQvg4TLB7dzkk0mgmGGbtU956fK_uOhuAzzOmp15l8TQd/exec';
 
-async function gsGet(action) {
-  var r = await fetch(GS_URL + '?action=' + action, {method:'GET', mode:'cors'});
-  if (!r.ok) throw new Error(await r.text());
-  return r.json();
+// JSONP بۆ GET — CORS کێشەی نییە
+function gsGet(action) {
+  return new Promise(function(resolve, reject) {
+    var cb = 'cb_' + Date.now();
+    var script = document.createElement('script');
+    window[cb] = function(data) {
+      delete window[cb];
+      document.body.removeChild(script);
+      resolve(data);
+    };
+    script.onerror = function() {
+      delete window[cb];
+      document.body.removeChild(script);
+      reject(new Error('NetworkError'));
+    };
+    script.src = GS_URL + '?action=' + action + '&callback=' + cb;
+    document.body.appendChild(script);
+  });
 }
 
+// POST بە no-cors — وەڵام نادەدرێتەوە بەڵام داتا دەنێرێت
 async function gsPost(data) {
-  var r = await fetch(GS_URL, {
-    method:'POST', mode:'cors',
-    body: JSON.stringify(data)
-  });
-  if (!r.ok) throw new Error(await r.text());
-  return r.json();
+  var form = new FormData();
+  form.append('data', JSON.stringify(data));
+  try {
+    await fetch(GS_URL, {method:'POST', mode:'no-cors', body: form});
+  } catch(e) { /* no-cors returns opaque */ }
+  // چاوەڕوان بە Sheet نوێ بکاتەوە
+  await new Promise(function(r){ setTimeout(r, 1500); });
 }
 
 // --- Load requests ---
