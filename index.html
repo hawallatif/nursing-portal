@@ -1166,37 +1166,38 @@ function setupDrop(zoneId, inputId, handler) {
 }
 
 // ---------- GOOGLE SHEETS ----------
-var GS_URL = 'https://script.google.com/macros/s/AKfycbz9VhkLpm_LPqcibgHnODNfQvg4TLB7dzkk0mgmGGbtU956fK_uOhuAzzOmp15l8TQd/exec';
+var GS_URL = 'https://script.google.com/macros/s/AKfycbzYsbBZuf8VXAx8x6_yi9mcufD4630C1LJJZPjN_2pyuUU3vmDswiF3DWvxSKdobx1N/exec';
 
-// JSONP بۆ GET — CORS کێشەی نییە
-function gsGet(action) {
+// هەموو داواکاری بە JSONP GET دەنێرین — CORS کێشەی نییە
+function gsCall(params) {
   return new Promise(function(resolve, reject) {
-    var cb = 'cb_' + Date.now();
+    var cb = 'cb_' + Date.now() + '_' + Math.floor(Math.random()*9999);
     var script = document.createElement('script');
     window[cb] = function(data) {
       delete window[cb];
-      document.body.removeChild(script);
+      if (document.body.contains(script)) document.body.removeChild(script);
       resolve(data);
     };
     script.onerror = function() {
       delete window[cb];
-      document.body.removeChild(script);
+      if (document.body.contains(script)) document.body.removeChild(script);
       reject(new Error('NetworkError'));
     };
-    script.src = GS_URL + '?action=' + action + '&callback=' + cb;
+    var query = Object.entries(params).map(function(e){
+      return e[0] + '=' + encodeURIComponent(e[1]);
+    }).join('&');
+    script.src = GS_URL + '?' + query + '&callback=' + cb;
     document.body.appendChild(script);
   });
 }
 
-// POST بە no-cors — وەڵام نادەدرێتەوە بەڵام داتا دەنێرێت
+function gsGet(action) { return gsCall({action: action}); }
+
 async function gsPost(data) {
-  var form = new FormData();
-  form.append('data', JSON.stringify(data));
-  try {
-    await fetch(GS_URL, {method:'POST', mode:'no-cors', body: form});
-  } catch(e) { /* no-cors returns opaque */ }
-  // چاوەڕوان بە Sheet نوێ بکاتەوە
-  await new Promise(function(r){ setTimeout(r, 1500); });
+  data.action_type = data.action;
+  var params = {action: data.action};
+  Object.keys(data).forEach(function(k){ params[k] = data[k]; });
+  return gsCall(params);
 }
 
 // --- Load requests ---
