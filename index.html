@@ -1165,207 +1165,129 @@ function setupDrop(zoneId, inputId, handler) {
   });
 }
 
-// ---------- SUPABASE ----------
-var SUPABASE_URL = 'https://qqhvsqfhirbtaglmdxqr.supabase.co';
-var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFxaHZzcWZoaXJidGFnbG1keHFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxMzE2NTEsImV4cCI6MjA5NzcwNzY1MX0.k8bwOLpXyDLnu-uGraeqy9XgftXFK8C3xd6yZtuMax4';
+// ---------- GOOGLE SHEETS ----------
+var GS_URL = 'https://script.google.com/macros/s/AKfycbz9VhkLpm_LPqcibgHnODNfQvg4TLB7dzkk0mgmGGbtU956fK_uOhuAzzOmp15l8TQd/exec';
 
-function sbHeaders(extra) {
-  var h = { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' };
-  return Object.assign(h, extra||{});
-}
-
-async function sbGet(table, order) {
-  var url = SUPABASE_URL + '/rest/v1/' + table + '?select=*' + (order ? '&order=' + order : '');
-  var r = await fetch(url, { method:'GET', mode:'cors', headers: sbHeaders() });
+async function gsGet(action) {
+  var r = await fetch(GS_URL + '?action=' + action, {method:'GET', mode:'cors'});
   if (!r.ok) throw new Error(await r.text());
   return r.json();
 }
 
-async function sbInsert(table, row) {
-  var r = await fetch(SUPABASE_URL + '/rest/v1/' + table, {
-    method: 'POST', mode:'cors', headers: sbHeaders({'Prefer':'return=minimal'}),
-    body: JSON.stringify(row)
-  });
-  if (!r.ok) throw new Error(await r.text());
-}
-
-async function sbUpdate(table, match, data) {
-  var params = Object.entries(match).map(function(e){ return e[0]+'=eq.'+encodeURIComponent(e[1]); }).join('&');
-  var r = await fetch(SUPABASE_URL + '/rest/v1/' + table + '?' + params, {
-    method: 'PATCH', mode:'cors', headers: sbHeaders({'Prefer':'return=minimal'}),
+async function gsPost(data) {
+  var r = await fetch(GS_URL, {
+    method:'POST', mode:'cors',
     body: JSON.stringify(data)
   });
   if (!r.ok) throw new Error(await r.text());
+  return r.json();
 }
 
-async function sbDelete(table, match) {
-  var params = Object.entries(match).map(function(e){
-    var val = e[1];
-    return e[0] + '=eq.' + encodeURIComponent(val);
-  }).join('&');
-  var r = await fetch(SUPABASE_URL + '/rest/v1/' + table + '?' + params, {
-    method: 'DELETE', mode:'cors', headers: sbHeaders()
-  });
-  if (!r.ok) { var t = await r.text(); throw new Error(t); }
-}
-
-// --- Load ---
-async function loadStudents() {
-  try {
-    var data = await sbGet('students','id');
-    students = data.map(function(r){ return {id:r.student_code, name:r.name, stage:r.stage, status:r.status}; });
-    renderStudents(); updateHomeStats();
-  } catch(e) { console.error('students:', e.message); }
-}
-
-async function loadTeachers() {
-  try {
-    var data = await sbGet('teachers','id');
-    teachers = data.map(function(r){ return {name:r.name, spec:r.speciality, edu:r.education, role:r.role}; });
-    renderTeachers(); updateHomeStats();
-  } catch(e) { console.error('teachers:', e.message); }
-}
-
+// --- Load requests ---
 async function loadRequests() {
   try {
-    var data = await sbGet('requests','id');
-    requests = data.map(function(r){ return {
-      id:r.id, code:r.code, type:r.type,
-      name:r.student_name, studentId:r.student_id,
-      detail:r.detail, date:r.date, status:r.status, note:r.note||''
-    };});
+    var rows = await gsGet('getRequests');
+    requests = [];
+    for (var i = 1; i < rows.length; i++) {
+      var r = rows[i];
+      if (!r[0]) continue;
+      requests.push({
+        id: i, code:r[0], type:r[1],
+        name:r[2], studentId:r[3],
+        detail:r[4], date:r[5],
+        status:r[6]||'چاوەڕوان', note:r[7]||''
+      });
+    }
     renderRequests(); renderTrackerHome(); updateReqBadge(); updateHomeStats();
   } catch(e) { console.error('requests:', e.message); }
 }
 
-// --- Students CRUD ---
-addStudent = async function() {
-  if (!isAdmin) { alert('تەنها بەڕێوەبەر دەتوانێت زیاد بکات'); return; }
-  var id=document.getElementById('s-id').value.trim();
-  var name=document.getElementById('s-name').value.trim();
-  var stage=document.getElementById('s-stage').value;
-  var status=document.getElementById('s-status').value;
-  if (!id||!name) { alert('تکایە ژمارە و ناو پڕبکەوە'); return; }
+async function loadAnnualStats() {
   try {
-    await sbInsert('students', {student_code:id, name:name, stage:stage, status:status});
-    document.getElementById('s-id').value='';
-    document.getElementById('s-name').value='';
-    await loadStudents();
-  } catch(e) { alert('کێشە: '+e.message); }
-};
+    var rows = await gsGet('getStats');
+    annualStats = [];
+    for (var i = 1; i < rows.length; i++) {
+      var r = rows[i];
+      if (!r[0]) continue;
+      annualStats.push({id:i, year:r[0], students:r[1], staff:r[2], graduates:r[3]});
+    }
+    renderAnnualStats();
+    updateHomeStats();
+  } catch(e) { console.error('annual_stats:', e.message); }
+}
 
-deleteStudent = async function(i) {
-  if (!isAdmin) return;
-  if (!confirm('دڵنیایت دەتەوێ بسڕیتەوە؟')) return;
-  try {
-    var s = students[i];
-    await sbDelete('students', {student_code: s.id});
-    await loadStudents();
-  } catch(e) { alert('کێشە: '+e.message); }
-};
+// Stub functions (نەماون بەڵام پێویستن بۆ کۆد)
+async function loadStudents() { renderStudents(); }
+async function loadTeachers() { renderTeachers(); }
 
-// --- Teachers CRUD ---
-addTeacher = async function() {
-  if (!isAdmin) { alert('تەنها بەڕێوەبەر دەتوانێت زیاد بکات'); return; }
-  var name=document.getElementById('t-name').value.trim();
-  var spec=document.getElementById('t-spec').value.trim();
-  var edu=document.getElementById('t-edu').value;
-  var role=document.getElementById('t-role').value;
-  if (!name||!spec) { alert('تکایە ناو و پسپۆڕی پڕبکەوە'); return; }
-  try {
-    await sbInsert('teachers', {name:name, speciality:spec, education:edu, role:role});
-    document.getElementById('t-name').value='';
-    document.getElementById('t-spec').value='';
-    await loadTeachers();
-  } catch(e) { alert('کێشە: '+e.message); }
-};
-
-deleteTeacher = async function(i) {
-  if (!isAdmin) return;
-  if (!confirm('دڵنیایت دەتەوێ بسڕیتەوە؟')) return;
-  try { await sbDelete('teachers', {name: teachers[i].name}); await loadTeachers(); }
-  catch(e) { alert('کێشە: '+e.message); }
-};
-
-// --- Requests CRUD ---
+// --- Submit request ---
 submit = async function(name) {
   var studentName='', studentId='', detail='', reqType='';
   if (name==='molat') {
     studentName=document.getElementById('form-molat-wrap').querySelector('input[placeholder="ناوی خوێندکار..."]').value.trim();
     studentId=document.getElementById('form-molat-wrap').querySelector('input[placeholder="نمونە: 2024-001"]').value.trim();
-    var sel=document.getElementById('form-molat-wrap').querySelector('select');
-    detail=sel?sel.value:''; reqType='مۆڵەت';
+    reqType='مۆڵەت';
   } else {
     studentName=document.getElementById('form-tasdiq-wrap').querySelector('input[placeholder="ناوی خوێندکار..."]').value.trim();
     studentId=document.getElementById('form-tasdiq-wrap').querySelector('input[placeholder="نمونە: 2024-001"]').value.trim();
-    var sel2=document.getElementById('form-tasdiq-wrap').querySelector('select');
-    detail=sel2?sel2.value:''; reqType='پشتگیری';
+    reqType='پشتگیری';
   }
-  var prefix=name==='molat'?'MOL':'CER';
+  var prefix=name==='molat'?'MOL':'PSH';
   var code=prefix+'-2026-'+String(Math.floor(Math.random()*9000)+1000);
   var now=new Date();
   var dateStr=now.getFullYear()+'/'+(now.getMonth()+1).toString().padStart(2,'0')+'/'+now.getDate().toString().padStart(2,'0');
   try {
-    await sbInsert('requests', {code:code, type:reqType, student_name:studentName||'نەناسراو', student_id:studentId, detail:detail, date:dateStr, status:'چاوەڕوان', note:''});
+    await gsPost({action:'addRequest', code:code, type:reqType,
+      student_name:studentName||'نەناسراو', student_id:studentId,
+      detail:detail, date:dateStr});
     await loadRequests();
     document.getElementById('form-'+name+'-wrap').style.display='none';
     document.getElementById('success-'+name).style.display='block';
     var codeEl=document.querySelector('#success-'+name+' code');
-    if (codeEl) codeEl.textContent=code;
+    if(codeEl) codeEl.textContent=code;
   } catch(e) { alert('کێشە: '+e.message); }
 };
 
 approveReq = async function(idx) {
-  try { await sbUpdate('requests', {id:requests[idx].id}, {status:'پەسەندکرا', note:''}); await loadRequests(); }
+  var r = requests[idx];
+  try { await gsPost({action:'updateRequest', code:r.code, status:'پەسەندکرا', note:''}); await loadRequests(); }
   catch(e) { alert('کێشە: '+e.message); }
 };
 
 rejectReq = async function(idx) {
-  var note=prompt('هۆکاری ڕەتکردنەوە:')||'';
-  try { await sbUpdate('requests', {id:requests[idx].id}, {status:'ڕەتکرایەوە', note:note}); await loadRequests(); }
+  var r = requests[idx];
+  var note = prompt('هۆکاری ڕەتکردنەوە:')||'';
+  try { await gsPost({action:'updateRequest', code:r.code, status:'ڕەتکرایەوە', note:note}); await loadRequests(); }
   catch(e) { alert('کێشە: '+e.message); }
 };
 
 resetReq = async function(idx) {
-  try { await sbUpdate('requests', {id:requests[idx].id}, {status:'چاوەڕوان', note:''}); await loadRequests(); }
+  var r = requests[idx];
+  try { await gsPost({action:'updateRequest', code:r.code, status:'چاوەڕوان', note:''}); await loadRequests(); }
   catch(e) { alert('کێشە: '+e.message); }
 };
 
-// --- Excel upload ---
-handleStudentFile = async function(input) {
-  var file=input.files[0]; if (!file) return;
-  parseFile(file, async function(err, rows) {
-    if (err) { showUploadResult('s-upload-result','err',err,0); return; }
-    var toInsert=[];
-    for (var i=1;i<rows.length;i++) {
-      var r=rows[i];
-      var id=(r[0]||'').toString().trim(), name=(r[1]||'').toString().trim();
-      if (!id||!name) continue;
-      toInsert.push({student_code:id, name:name, stage:(r[2]||'یەکەم').toString().trim(), status:(r[3]||'چالاک').toString().trim()});
-    }
-    if (!toInsert.length) { showUploadResult('s-upload-result','err','هیچ داتایەک نەدۆزرایەوە',0); return; }
-    try { await sbInsert('students', toInsert); await loadStudents(); showUploadResult('s-upload-result','ok','',toInsert.length); }
-    catch(e) { showUploadResult('s-upload-result','err',e.message,0); }
-    input.value='';
-  });
-};
-
-handleTeacherFile = async function(input) {
-  var file=input.files[0]; if (!file) return;
-  parseFile(file, async function(err, rows) {
-    if (err) { showUploadResult('t-upload-result','err',err,0); return; }
-    var toInsert=[];
-    for (var i=1;i<rows.length;i++) {
-      var r=rows[i];
-      var name=(r[0]||'').toString().trim();
-      if (!name) continue;
-      toInsert.push({name:name, speciality:(r[1]||'').toString().trim(), education:(r[2]||'ماستەر').toString().trim(), role:(r[3]||'مامۆستا').toString().trim()});
-    }
-    if (!toInsert.length) { showUploadResult('t-upload-result','err','هیچ داتایەک نەدۆزرایەوە',0); return; }
-    try { await sbInsert('teachers', toInsert); await loadTeachers(); showUploadResult('t-upload-result','ok','',toInsert.length); }
-    catch(e) { showUploadResult('t-upload-result','err',e.message,0); }
-    input.value='';
-  });
+saveAnnualStat = async function() {
+  var year=parseInt(document.getElementById('as-year').value);
+  var sts=parseInt(document.getElementById('as-students').value)||0;
+  var stf=parseInt(document.getElementById('as-staff').value)||0;
+  var grads=parseInt(document.getElementById('as-graduates').value)||0;
+  if(!year){alert('تکایە ساڵ داخڵ بکە');return;}
+  var msg=document.getElementById('as-msg');
+  try {
+    await gsPost({action:'addStats', year:year, students:sts, staff:stf, graduates:grads});
+    document.getElementById('as-year').value='';
+    document.getElementById('as-students').value='';
+    document.getElementById('as-staff').value='';
+    document.getElementById('as-graduates').value='';
+    await loadAnnualStats();
+    msg.style.display='block';
+    msg.innerHTML='<div style="background:rgba(52,168,83,0.12);border:1px solid rgba(52,168,83,0.3);border-radius:8px;padding:10px;font-family:\'Speda\',sans-serif;font-size:13px;color:#34A853;">✅ پاشەکەوت کرا</div>';
+    setTimeout(function(){msg.style.display='none';},3000);
+  } catch(e) {
+    msg.style.display='block';
+    msg.innerHTML='<div style="background:rgba(192,57,43,0.12);border:1px solid rgba(192,57,43,0.3);border-radius:8px;padding:10px;font-family:\'Speda\',sans-serif;font-size:13px;color:#e74c3c;">❌ کێشە: '+e.message+'</div>';
+  }
 };
 
 // ---------- ANNUAL STATS ----------
@@ -1393,8 +1315,13 @@ function updateHomeStats() {
 
 async function loadAnnualStats() {
   try {
-    var data = await sbGet('annual_stats', 'year');
-    annualStats = data;
+    var rows = await gsGet('getStats');
+    annualStats = [];
+    for (var i = 1; i < rows.length; i++) {
+      var r = rows[i];
+      if (!r[0]) continue;
+      annualStats.push({id:i, year:r[0], students:r[1], staff:r[2], graduates:r[3]});
+    }
     renderAnnualStats();
     updateHomeStats();
   } catch(e) { console.error('annual_stats:', e.message); }
@@ -1418,41 +1345,11 @@ function renderAnnualStats() {
   }).join('');
 }
 
-async function saveAnnualStat() {
-  var year      = parseInt(document.getElementById('as-year').value);
-  var students  = parseInt(document.getElementById('as-students').value) || 0;
-  var staff     = parseInt(document.getElementById('as-staff').value) || 0;
-  var graduates = parseInt(document.getElementById('as-graduates').value) || 0;
-  if (!year) { alert('تکایە ساڵ داخڵ بکە'); return; }
-  var msg = document.getElementById('as-msg');
-  try {
-    // check if year exists — update or insert
-    var existing = annualStats.find(function(r){ return r.year === year; });
-    if (existing) {
-      await sbUpdate('annual_stats', {id: existing.id}, {students:students, staff:staff, graduates:graduates});
-    } else {
-      await sbInsert('annual_stats', {year:year, students:students, staff:staff, graduates:graduates});
-    }
-    document.getElementById('as-year').value = '';
-    document.getElementById('as-students').value = '';
-    document.getElementById('as-staff').value = '';
-    document.getElementById('as-graduates').value = '';
-    await loadAnnualStats();
-    msg.style.display = 'block';
-    msg.innerHTML = '<div style="background:rgba(52,168,83,0.12);border:1px solid rgba(52,168,83,0.3);border-radius:8px;padding:10px;font-family:\'Speda\',sans-serif;font-size:13px;color:#34A853;">✅ پاشەکەوت کرا</div>';
-    setTimeout(function(){ msg.style.display='none'; }, 3000);
-  } catch(e) {
-    msg.style.display = 'block';
-    msg.innerHTML = '<div style="background:rgba(192,57,43,0.12);border:1px solid rgba(192,57,43,0.3);border-radius:8px;padding:10px;font-family:\'Speda\',sans-serif;font-size:13px;color:#e74c3c;">❌ کێشە: '+e.message+'</div>';
-  }
-}
 
 async function deleteAnnualStat(id) {
   if (!confirm('دڵنیایت؟')) return;
-  try {
-    await sbDelete('annual_stats', {id: id});
-    await loadAnnualStats();
-  } catch(e) { alert('کێشە: '+e.message); }
+  // Google Sheets: just reload — delete not supported via GET/POST simply
+  alert('بۆ سڕینەوە، ڕاستەوخۆ لە Google Sheet ڕیکەردەکە بسڕەوە');
 }
 
 // INIT
