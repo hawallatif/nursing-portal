@@ -1194,10 +1194,23 @@ function gsCall(params) {
 function gsGet(action) { return gsCall({action: action}); }
 
 async function gsPost(data) {
-  data.action_type = data.action;
-  var params = {action: data.action};
-  Object.keys(data).forEach(function(k){ params[k] = data[k]; });
-  return gsCall(params);
+  return new Promise(function(resolve, reject) {
+    var cb = 'cb_' + Date.now() + '_' + Math.floor(Math.random()*9999);
+    var script = document.createElement('script');
+    window[cb] = function(result) {
+      delete window[cb];
+      if (document.body.contains(script)) document.body.removeChild(script);
+      resolve(result);
+    };
+    script.onerror = function() {
+      delete window[cb];
+      if (document.body.contains(script)) document.body.removeChild(script);
+      reject(new Error('NetworkError'));
+    };
+    var encoded = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+    script.src = GS_URL + '?payload=' + encodeURIComponent(encoded) + '&callback=' + cb;
+    document.body.appendChild(script);
+  });
 }
 
 // --- Load requests ---
