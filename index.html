@@ -705,13 +705,23 @@ footer span { color: var(--teal); }
 <script>
 // ---------- AUTH ----------
 var ADMIN_USER = 'admin';
-var ADMIN_PASS = 'nursing2026';
+// پاسووردەکە hash کراوە
+var ADMIN_HASH = 'aa647f558e5f209b67a4a85cb9043b9cb50177314728c4bbb44b702170357266';
 var isAdmin = false;
 
-function doLogin() {
+async function hashPassword(pass) {
+  var encoder = new TextEncoder();
+  var data = encoder.encode(pass);
+  var hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  var hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(function(b){ return b.toString(16).padStart(2,'0'); }).join('');
+}
+
+async function doLogin() {
   var u = document.getElementById('login-user').value.trim();
   var p = document.getElementById('login-pass').value;
-  if (u === ADMIN_USER && p === ADMIN_PASS) {
+  var h = await hashPassword(p);
+  if (u === ADMIN_USER && h === ADMIN_HASH) {
     isAdmin = true;
     document.getElementById('login-overlay').style.display = 'none';
     document.getElementById('admin-badge').style.display = 'block';
